@@ -203,9 +203,13 @@ func (rp DetailedReportParams) merge(rawParams map[string]string) (merged map[st
 
 		switch name {
 		case "Since":
-			valueString = value.Interface().(time.Time).Format("2006-01-02")
+			valueTime := value.Interface().(time.Time)
+			valueString = valueTime.Format("2006-01-02")
+			skip = valueTime.IsZero()
 		case "Until":
-			valueString = value.Interface().(time.Time).Format("2006-01-02")
+			valueTime := value.Interface().(time.Time)
+			valueString = valueTime.Format("2006-01-02")
+			skip = valueTime.IsZero()
 		case "Page":
 			valueString = strconv.FormatInt(value.Int(), 10)
 		case "ClientIDs":
@@ -228,9 +232,11 @@ func (rp DetailedReportParams) merge(rawParams map[string]string) (merged map[st
 			valueString = strconv.FormatInt(value.Int(), 10)
 		default:
 			valueString = value.String()
+			skip = valueString == ""
 		}
 
-		if _, ok := merged[jsonName]; !ok && !skip {
+		// TODO: don't understand how to override default struct vars
+		if !skip {
 			merged[jsonName] = valueString
 		}
 	}
