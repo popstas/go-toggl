@@ -17,15 +17,16 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"time"
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // Toggl service constants
 const (
 	TogglAPI       = "https://toggl.com/api/v8"
+	TogglAPIV9     = "https://toggl.com/api/v9"
 	ReportsAPI     = "https://toggl.com/reports/api/v2"
 	DefaultAppName = "go-toggl"
 )
@@ -491,19 +492,40 @@ func (session *Session) StopTimeEntry(timer TimeEntry) (TimeEntry, error) {
 func (session *Session) AddRemoveTag(entryID int, tag string, add bool) (TimeEntry, error) {
 	dlog.Printf("Adding tag to time entry %v", entryID)
 
-	action := "add"
+	op := "add"
 	if !add {
-		action = "remove"
+		op = "remove"
+	}
+
+	data := []interface{}{map[string]interface{}{
+		"op":    op,
+		"path":  "/tags",
+		"value": []string{tag},
+	}}
+
+	path := fmt.Sprintf("/time_entries/%v", entryID)
+	respData, err := session.patch(TogglAPIV9, path, data)
+
+	return timeEntryRequest(respData, err)
+}
+
+// AddRemoveTag adds or removes a tag from the time entry corresponding to a
+// given ID.
+func (session *Session) AddRemoveTagv9(entryID int, tag string, add bool) (TimeEntry, error) {
+	dlog.Printf("Adding tag to time entry %v", entryID)
+
+	op := "add"
+	if !add {
+		op = "remove"
 	}
 
 	data := map[string]interface{}{
-		"time_entry": map[string]interface{}{
-			"tags":       []string{tag},
-			"tag_action": action,
-		},
+		"op":     op,
+		"path":   "/tags",
+		"value":  []string{tag},
 	}
 	path := fmt.Sprintf("/time_entries/%v", entryID)
-	respData, err := session.post(TogglAPI, path, data)
+	respData, err := session.post(TogglAPIV9, path, data)
 
 	return timeEntryRequest(respData, err)
 }
@@ -860,6 +882,23 @@ func (session *Session) post(requestURL string, path string, data interface{}) (
 	dlog.Printf("POSTing to URL: %s", requestURL)
 	dlog.Printf("data: %s", body)
 	return session.request("POST", requestURL, bytes.NewBuffer(body))
+}
+
+func (session *Session) patch(requestURL string, path string, data interface{}) ([]byte, error) {
+	requestURL += path
+	var body []byte
+	var err error
+
+	if data != nil {
+		body, err = json.Marshal(data)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	dlog.Printf("PATCHing to URL: %s", requestURL)
+	dlog.Printf("data: %s", body)
+	return session.request("PATCH", requestURL, bytes.NewBuffer(body))
 }
 
 func (session *Session) put(requestURL string, path string, data interface{}) ([]byte, error) {
