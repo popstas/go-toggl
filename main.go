@@ -25,9 +25,9 @@ import (
 
 // Toggl service constants
 const (
-	TogglAPI       = "https://toggl.com/api/v8"
-	TogglAPIV9     = "https://toggl.com/api/v9"
-	ReportsAPI     = "https://toggl.com/reports/api/v2"
+	TogglAPI       = "https://api.track.toggl.com/api/v8"
+	TogglAPIV9     = "https://api.track.toggl.com/api/v9"
+	ReportsAPI     = "https://api.track.toggl.com/reports/api/v2"
 	DefaultAppName = "go-toggl"
 )
 
